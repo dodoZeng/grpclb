@@ -63,7 +63,7 @@ func main() {
 
 	s := grpc.NewServer()
 	pb.RegisterGreeterServer(s, &greeter_server{})
-	grpc_health_v1.RegisterHealthServer(s, &health_server{})
+	grpc_health_v1.RegisterHealthServer(s, (grpc_health_v1.HealthServer)(&health_server{}))
 
 	// 注册服务到consul
 	register := grpclb.NewRegister(node_id, consul_addr, service_pre, service_name, addr, port, nil, 0, 0)
