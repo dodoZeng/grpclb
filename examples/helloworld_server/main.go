@@ -45,6 +45,10 @@ func (h *health_server) Check(ctx context.Context, req *grpc_health_v1.HealthChe
 	}, nil
 }
 
+func (h *health_server) Watch(*grpc_health_v1.HealthCheckRequest, grpc_health_v1.Health_WatchServer) error {
+	return nil
+}
+
 func init() {
 	if len(os.Args) > 1 {
 		node_id = os.Args[1]
@@ -63,7 +67,7 @@ func main() {
 
 	s := grpc.NewServer()
 	pb.RegisterGreeterServer(s, &greeter_server{})
-	grpc_health_v1.RegisterHealthServer(s, (grpc_health_v1.HealthServer)(&health_server{}))
+	grpc_health_v1.RegisterHealthServer(s, &health_server{})
 
 	// 注册服务到consul
 	register := grpclb.NewRegister(node_id, consul_addr, service_pre, service_name, addr, port, nil, 0, 0)
