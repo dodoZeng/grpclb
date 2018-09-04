@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	"github.com/dodoZeng/grpclb"
-	pb "github.com/dodoZeng/grpclb/examples/helloworld/helloworld"
+	pb "github.com/dodoZeng/grpclb/examples/helloworld"
 )
 
 const (

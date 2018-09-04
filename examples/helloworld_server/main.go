@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/dodoZeng/grpclb"
-	pb "github.com/dodoZeng/grpclb/examples/helloworld/helloworld"
+	pb "github.com/dodoZeng/grpclb/examples/helloworld"
 )
 
 var (
