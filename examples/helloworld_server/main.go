@@ -3,7 +3,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -11,11 +10,11 @@ import (
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 
-	grpclb "github.com/dodoZeng/grpclb"
+	"github.com/dodoZeng/grpclb"
+	pb "github.com/dodoZeng/grpclb/examples/helloworld/helloworld"
 )
 
 var (

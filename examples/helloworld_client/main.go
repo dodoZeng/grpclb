@@ -5,12 +5,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/dodoZeng/grpclb"
 	"github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	pb "google.golang.org/grpc/examples/helloworld/helloworld"
+
+	"github.com/dodoZeng/grpclb"
+	pb "github.com/dodoZeng/grpclb/examples/helloworld/helloworld"
 )
 
 const (
