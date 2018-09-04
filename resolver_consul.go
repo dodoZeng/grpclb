@@ -1,7 +1,6 @@
 package grpclb
 
 import (
-	"fmt"
 	"net"
 	"strconv"
 
