@@ -70,7 +70,7 @@ func main() {
 	grpc_health_v1.RegisterHealthServer(s, &health_server{})
 
 	// 注册服务到consul
-	register := grpclb.NewRegister(node_id, consul_addr, service_pre, service_name, addr, port, nil, 0, 0)
+	register := grpclb.NewRegister(node_id, consul_addr, service_pre, service_name, addr, port, nil, nil, 0, 0)
 	if err := register.Register(); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 		return

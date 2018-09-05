@@ -14,13 +14,14 @@ type consulRegister struct {
 	service_pre      string
 	service_name     string
 	tags             []string
+	meta             map[string]string
 	addr             string
 	port             int
 	deregister_after time.Duration
 	interval         time.Duration
 }
 
-func NewRegister(node_id string, consul_addr string, service_pre string, service string, addr string, port int, tags []string, deregister_after_second uint, interval_second uint) *consulRegister {
+func NewRegister(node_id string, consul_addr string, service_pre string, service string, addr string, port int, tags []string, meta map[string]string, deregister_after_second uint, interval_second uint) *consulRegister {
 	if deregister_after_second <= 0 {
 		deregister_after_second = 60
 	}
@@ -37,6 +38,7 @@ func NewRegister(node_id string, consul_addr string, service_pre string, service
 		addr:             addr,
 		port:             port,
 		tags:             tags,
+		meta:             meta,
 		deregister_after: time.Duration(deregister_after_second) * time.Second,
 		interval:         time.Duration(interval_second) * time.Second,
 	}
