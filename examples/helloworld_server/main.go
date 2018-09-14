@@ -14,8 +14,8 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/dodoZeng/grpclb"
 	pb "github.com/dodoZeng/grpclb/examples/helloworld"
+	"github.com/dodoZeng/grpclb/resolver/consul"
 )
 
 var (
@@ -32,8 +32,8 @@ type greeter_server struct{}
 
 // SayHello implements helloworld.GreeterServer
 func (s *greeter_server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
-	log.Printf("name: %s, from: %s", in.Name, in.From)
-	return &pb.HelloReply{Message: "Hello " + in.Name + "!! [reply from node: " + node_id + "]"}, nil
+	//time.Sleep(time.Millisecond * 200)
+	return &pb.HelloReply{Message: "Hello " + in.Name + "! [reply from node: " + node_id + "]"}, nil
 }
 
 // 实现健康检查接口，提供给consul调用(也可以在注册时使用其他健康检查方式，在这里是使用grpc的健康检查)
@@ -70,7 +70,7 @@ func main() {
 	grpc_health_v1.RegisterHealthServer(s, &health_server{})
 
 	// 注册服务到consul
-	register := grpclb.NewRegister(node_id, consul_addr, service_pre, service_name, addr, port, nil, nil, 0, 0)
+	register := consul.NewRegister(node_id, consul_addr, service_pre, service_name, addr, port, nil, nil, 0, 0)
 	if err := register.Register(); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 		return

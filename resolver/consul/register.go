@@ -1,4 +1,4 @@
-package grpclb
+package consul
 
 import (
 	"fmt"
