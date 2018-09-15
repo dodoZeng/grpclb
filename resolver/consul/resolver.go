@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"errors"
 	"net"
 	"strconv"
 	"strings"
@@ -17,13 +16,16 @@ type consulResolverBuilder struct{}
 
 func (*consulResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOption) (resolver.Resolver, error) {
 
-	ss := strings.Split(target.Endpoint, "/")
-	if len(ss) < 2 {
-		return nil, errors.New("invalid endpoin format. [ip:port/service_name]")
+	var addr, service string
+	if ss := strings.Split(target.Endpoint, "/"); len(ss) >= 2 {
+		addr, service = ss[0], ss[1]
+	} else {
+		addr = target.Endpoint
 	}
 
 	config := consul_api.DefaultConfig()
-	config.Address = ss[0]
+	config.Address = addr
+
 	client, err := consul_api.NewClient(config)
 	if err != nil {
 		return nil, err
@@ -34,7 +36,7 @@ func (*consulResolverBuilder) Build(target resolver.Target, cc resolver.ClientCo
 		cc:           cc,
 		consulClient: client,
 		addrs:        make(map[string]*consul_api.Node),
-		service:      ss[1],
+		service:      service,
 	}
 	r.start()
 	return r, nil

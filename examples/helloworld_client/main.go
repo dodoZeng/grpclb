@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 
-	rbalancer "github.com/dodoZeng/grpclb/balancer/random"
+	kbalancer "github.com/dodoZeng/grpclb/balancer/ketama"
 	pb "github.com/dodoZeng/grpclb/examples/helloworld"
 	_ "github.com/dodoZeng/grpclb/resolver/consul"
 )
@@ -40,7 +40,7 @@ func main() {
 				grpc_retry.WithCodes(codes.ResourceExhausted, codes.Unavailable, codes.DeadlineExceeded),
 			),
 		),
-		grpc.WithBalancerName(rbalancer.Name),
+		grpc.WithBalancerName(kbalancer.Name),
 		//grpc.WithBalancer(grpc.RoundRobin(grpclb.NewResolver(
 		//	consulAddress, service,
 		//))),
@@ -68,7 +68,9 @@ func main() {
 
 			ts := time.Now().UnixNano()
 
-			r, err := c.SayHello(context.Background(),
+			ctx := context.Background()
+			keyValue := name
+			r, err := c.SayHello(context.WithValue(ctx, kbalancer.DefaultKetamaKeyName, keyValue),
 				&pb.HelloRequest{Name: name},
 				grpc_retry.WithMax(3),
 				grpc_retry.WithPerRetryTimeout(time.Duration(300)*time.Millisecond),

@@ -12,13 +12,12 @@ import (
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/balancer/base"
 	"google.golang.org/grpc/grpclog"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/resolver"
 )
 
 // Name is the name of ketama balancer.
 const Name = "ketama"
-const DefaultKetamaKey = "_grpclb-ketama-key"
+const DefaultKetamaKeyName = "_grpclb-ketama-key"
 const defaultReplicas = 10
 
 // newBuilder creates a new ketama balancer builder.
@@ -65,18 +64,18 @@ func (p *kPicker) Pick(ctx context.Context, opts balancer.PickOptions) (balancer
 		return nil, nil, balancer.ErrNoSubConnAvailable
 	}
 
-	pos := len(p.subConns) - 1
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		for _, data := range md[DefaultKetamaKey] {
-			hash := int(crc32.ChecksumIEEE([]byte(data)))
-			pos = sort.Search(len(p.connHashs), func(i int) bool {
-				return p.connHashs[i] >= hash
-			})
-
-			break
-		}
+	pos := len(p.connHashs) - 1
+	if key, ok := ctx.Value(DefaultKetamaKeyName).(string); ok {
+		hash := int(crc32.ChecksumIEEE([]byte(key)))
+		pos = sort.Search(len(p.connHashs), func(i int) bool {
+			return p.connHashs[i] >= hash
+		})
 	}
 
-	sc := p.subConns[pos]
-	return sc, nil, nil
+	h := p.connHashs[pos]
+	if sc, ok := p.subConns[h]; !ok {
+		return nil, nil, balancer.ErrNoSubConnAvailable
+	} else {
+		return sc, nil, nil
+	}
 }
