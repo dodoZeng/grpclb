@@ -21,7 +21,7 @@ type consulRegister struct {
 	interval         time.Duration
 }
 
-func NewRegister(node_id string, consul_addr string, service_pre string, service string, addr string, port int, tags []string, meta map[string]string, deregister_after_second uint, interval_second uint) *consulRegister {
+func NewRegister(node_id string, consul_addr string, service_pre string, service string, addr string, port int, tags []string, meta_map map[string]string, deregister_after_second uint, interval_second uint) *consulRegister {
 	if deregister_after_second <= 0 {
 		deregister_after_second = 60
 	}
@@ -38,7 +38,7 @@ func NewRegister(node_id string, consul_addr string, service_pre string, service
 		addr:             addr,
 		port:             port,
 		tags:             tags,
-		meta:             meta,
+		meta:             meta_map,
 		deregister_after: time.Duration(deregister_after_second) * time.Second,
 		interval:         time.Duration(interval_second) * time.Second,
 	}
@@ -63,9 +63,10 @@ func (r *consulRegister) Register() error {
 		Tags:    r.tags,
 		Port:    r.port,
 		Address: r.addr,
+		Meta:    r.meta,
 		Check: &consul_api.AgentServiceCheck{
-			Interval: r.interval.String(),
-			GRPC:     fmt.Sprintf("%s:%d/%s.%s", r.addr, r.port, r.service_pre, r.service_name),
+			Interval:                       r.interval.String(),
+			GRPC:                           fmt.Sprintf("%s:%d/%s.%s", r.addr, r.port, r.service_pre, r.service_name),
 			DeregisterCriticalServiceAfter: r.deregister_after.String(),
 		},
 	}

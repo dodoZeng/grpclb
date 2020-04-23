@@ -13,12 +13,12 @@ import (
 	"google.golang.org/grpc/resolver"
 )
 
-// Name is the name of random balancer.
-const Name = "random"
+// BalancerName is the name of random balancer.
+const BalancerName = "random"
 
 // newBuilder creates a new random balancer builder.
 func newBuilder() balancer.Builder {
-	return base.NewBalancerBuilder(Name, &rPickerBuilder{})
+	return base.NewBalancerBuilder(BalancerName, &rPickerBuilder{})
 }
 
 func init() {
@@ -45,7 +45,7 @@ type rPicker struct {
 	subConns []balancer.SubConn
 }
 
-func (p *rPicker) Pick(ctx context.Context, opts balancer.PickOptions) (balancer.SubConn, func(balancer.DoneInfo), error) {
+func (p *rPicker) Pick(ctx context.Context, opts balancer.PickInfo) (balancer.SubConn, func(balancer.DoneInfo), error) {
 	if len(p.subConns) <= 0 {
 		return nil, nil, balancer.ErrNoSubConnAvailable
 	}

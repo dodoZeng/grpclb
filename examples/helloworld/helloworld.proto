@@ -14,9 +14,7 @@
 
 syntax = "proto3";
 
-option java_multiple_files = true;
-option java_package = "io.grpc.examples.helloworld";
-option java_outer_classname = "HelloWorldProto";
+option go_package = ".;helloworld";
 
 package helloworld;
 
@@ -29,7 +27,7 @@ service Greeter {
 // The request message containing the user's name.
 message HelloRequest {
   string name = 1;
-option string from = 2;
+  string from = 2;
 }
 
 // The response message containing the greetings

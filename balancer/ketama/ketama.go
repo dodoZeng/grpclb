@@ -4,25 +4,26 @@
 package ketama
 
 import (
-	"hash/crc32"
 	"sort"
 	"strconv"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/balancer/base"
-	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/resolver"
+
+	consul_api "github.com/hashicorp/consul/api"
 )
 
-// Name is the name of ketama balancer.
-const Name = "ketama"
-const DefaultKetamaKeyName = "_grpclb-ketama-key"
-const defaultReplicas = 10
+// BalancerName is the name of ketama balancer.
+const BalancerName = "ketama"
+
+// Key is the name of Key in the request
+const Key = "_grpclb-ketama-key"
 
 // newBuilder creates a new ketama balancer builder.
 func newBuilder() balancer.Builder {
-	return base.NewBalancerBuilder(Name, &kPickerBuilder{})
+	return base.NewBalancerBuilder(BalancerName, &kPickerBuilder{})
 }
 
 func init() {
@@ -32,15 +33,15 @@ func init() {
 type kPickerBuilder struct{}
 
 func (*kPickerBuilder) Build(readySCs map[resolver.Address]balancer.SubConn) balancer.Picker {
-	grpclog.Infof("ketamaPicker: newPicker called with readySCs: %v", readySCs)
+	//grpclog.Infof("ketamaPicker: newPicker called with readySCs: %v", readySCs)
 	scs := map[int]balancer.SubConn{}
 	hashs := []int{}
 	for addr, sc := range readySCs {
-		for i := 0; i < defaultReplicas; i++ {
-			h := int(crc32.ChecksumIEEE([]byte(strconv.Itoa(i) + addr.Addr)))
-
-			hashs = append(hashs, h)
-			scs[h] = sc
+		if s, ok := addr.Metadata.(*consul_api.AgentService); ok {
+			if h, err := strconv.Atoi(s.Meta["hash"]); err == nil {
+				hashs = append(hashs, h)
+				scs[h] = sc
+			}
 		}
 	}
 	sort.Ints(hashs)
@@ -59,23 +60,28 @@ type kPicker struct {
 	connHashs []int
 }
 
-func (p *kPicker) Pick(ctx context.Context, opts balancer.PickOptions) (balancer.SubConn, func(balancer.DoneInfo), error) {
+func (p *kPicker) Pick(ctx context.Context, opts balancer.PickInfo) (balancer.SubConn, func(balancer.DoneInfo), error) {
 	if len(p.subConns) <= 0 {
 		return nil, nil, balancer.ErrNoSubConnAvailable
 	}
 
 	pos := len(p.connHashs) - 1
-	if key, ok := ctx.Value(DefaultKetamaKeyName).(string); ok {
-		hash := int(crc32.ChecksumIEEE([]byte(key)))
+	if key, ok := ctx.Value(Key).(string); ok {
+		//hash := int(crc32.ChecksumIEEE([]byte(key)))
+		hash, _ := strconv.Atoi(key)
+
 		pos = sort.Search(len(p.connHashs), func(i int) bool {
-			return p.connHashs[i] >= hash
+			return hash <= p.connHashs[i]
 		})
+		if pos >= len(p.connHashs) {
+			pos = len(p.connHashs) - 1
+		}
 	}
 
 	h := p.connHashs[pos]
-	if sc, ok := p.subConns[h]; !ok {
-		return nil, nil, balancer.ErrNoSubConnAvailable
-	} else {
+	if sc, ok := p.subConns[h]; ok {
 		return sc, nil, nil
 	}
+
+	return nil, nil, balancer.ErrNoSubConnAvailable
 }

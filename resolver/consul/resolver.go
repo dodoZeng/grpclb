@@ -14,7 +14,7 @@ const scheme = "consul"
 
 type consulResolverBuilder struct{}
 
-func (*consulResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOption) (resolver.Resolver, error) {
+func (*consulResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
 
 	var addr, service string
 	if ss := strings.Split(target.Endpoint, "/"); len(ss) >= 2 {
@@ -35,7 +35,7 @@ func (*consulResolverBuilder) Build(target resolver.Target, cc resolver.ClientCo
 		target:       target,
 		cc:           cc,
 		consulClient: client,
-		addrs:        make(map[string]*consul_api.Node),
+		addrs:        make(map[string]*consul_api.AgentService),
 		service:      service,
 	}
 	r.start()
@@ -51,7 +51,7 @@ type consulResolver struct {
 	cc     resolver.ClientConn
 
 	consulClient *consul_api.Client
-	addrs        map[string]*consul_api.Node
+	addrs        map[string]*consul_api.AgentService
 	service      string
 	lastIndex    uint64
 
@@ -59,7 +59,7 @@ type consulResolver struct {
 	wg   sync.WaitGroup
 }
 
-func (r *consulResolver) ResolveNow(o resolver.ResolveNowOption) {
+func (r *consulResolver) ResolveNow(o resolver.ResolveNowOptions) {
 	r.resolveOnce(o)
 }
 
@@ -77,13 +77,13 @@ func (r *consulResolver) watchAddrUpdates() {
 	r.wg.Add(1)
 	defer r.wg.Done()
 
-	o := resolver.ResolveNowOption{}
+	o := resolver.ResolveNowOptions{}
 	for r.done != true {
 		r.resolveOnce(o)
 	}
 }
 
-func (r *consulResolver) resolveOnce(o resolver.ResolveNowOption) {
+func (r *consulResolver) resolveOnce(o resolver.ResolveNowOptions) {
 	services, metainfo, err := r.consulClient.Health().Service(r.service, "", true, &consul_api.QueryOptions{
 		WaitIndex: r.lastIndex,
 	})
@@ -92,15 +92,15 @@ func (r *consulResolver) resolveOnce(o resolver.ResolveNowOption) {
 	}
 	r.lastIndex = metainfo.LastIndex
 
-	addrs := make(map[string]*consul_api.Node)
+	addrs := make(map[string]*consul_api.AgentService)
 	for _, s := range services {
-		addrs[net.JoinHostPort(s.Service.Address, strconv.Itoa(s.Service.Port))] = s.Node
+		addrs[net.JoinHostPort(s.Service.Address, strconv.Itoa(s.Service.Port))] = s.Service
 	}
 
 	var newAddrs []resolver.Address
-	for k, v := range addrs {
+	for k, s := range addrs {
 		if _, ok := r.addrs[k]; !ok {
-			newAddrs = append(newAddrs, resolver.Address{Addr: k, Metadata: v})
+			newAddrs = append(newAddrs, resolver.Address{Addr: k, ServerName: s.ID, Metadata: s})
 		}
 	}
 	if len(newAddrs) > 0 {

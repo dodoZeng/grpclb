@@ -1,5 +1,7 @@
 //go:generate protoc -I ../helloworld --go_out=plugins=grpc:../helloworld ../helloworld/helloworld.proto
 
+// consul agent -server -ui -bootstrap -data-dir=/tmp/consul -node=n1 -bind=0.0.0.0 -client=0.0.0.0
+
 package main
 
 import (
@@ -25,6 +27,8 @@ var (
 	port         = 50051
 	service_pre  = "helloworld"
 	service_name = "Greeter"
+	weight       = "1"
+	hash         = "10"
 )
 
 // server is used to implement helloworld.GreeterServer.
@@ -56,6 +60,13 @@ func init() {
 	if len(os.Args) > 2 {
 		port, _ = strconv.Atoi(os.Args[2])
 	}
+	if len(os.Args) > 3 {
+		weight = os.Args[3]
+	}
+	if len(os.Args) > 4 {
+		hash = os.Args[4]
+	}
+
 }
 
 func main() {
@@ -70,9 +81,13 @@ func main() {
 	grpc_health_v1.RegisterHealthServer(s, &health_server{})
 
 	// 注册服务到consul
-	register := consul.NewRegister(node_id, consul_addr, service_pre, service_name, addr, port, nil, nil, 0, 0)
+	serviceMeta := map[string]string{
+		"hash":   hash,   // the hash of the service node
+		"weight": weight, // the weight of the service node
+	}
+	register := consul.NewRegister(node_id, consul_addr, service_pre, service_name, addr, port, nil, serviceMeta, 0, 0)
 	if err := register.Register(); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		log.Fatalf("failed to register: %v", err)
 		return
 	}
 

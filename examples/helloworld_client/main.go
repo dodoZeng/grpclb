@@ -1,3 +1,5 @@
+//go:generate protoc -I ../helloworld --go_out=plugins=grpc:../helloworld ../helloworld/helloworld.proto
+
 package main
 
 import (
@@ -7,11 +9,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 
-	kbalancer "github.com/dodoZeng/grpclb/balancer/ketama"
+	balancer "github.com/dodoZeng/grpclb/balancer/robin"
+	//balancer "github.com/dodoZeng/grpclb/balancer/ketama"
 	pb "github.com/dodoZeng/grpclb/examples/helloworld"
 	_ "github.com/dodoZeng/grpclb/resolver/consul"
 )
@@ -40,7 +43,7 @@ func main() {
 				grpc_retry.WithCodes(codes.ResourceExhausted, codes.Unavailable, codes.DeadlineExceeded),
 			),
 		),
-		grpc.WithBalancerName(kbalancer.Name),
+		grpc.WithBalancerName(balancer.BalancerName),
 		//grpc.WithBalancer(grpc.RoundRobin(grpclb.NewResolver(
 		//	consulAddress, service,
 		//))),
@@ -56,8 +59,12 @@ func main() {
 
 	// Contact the server and print out its response.
 	name := defaultName
+	key := "10"
 	if len(os.Args) > 1 {
 		name = os.Args[1]
+	}
+	if len(os.Args) > 2 {
+		key = os.Args[2]
 	}
 
 	for i := 0; i < 10; i++ {
@@ -66,11 +73,11 @@ func main() {
 			//ctx, cancel := context.WithTimeout(context.Background(), time.Duration(1000)*time.Millisecond)
 			//defer cancel()
 
-			ts := time.Now().UnixNano()
+			//ts := time.Now().UnixNano()
 
 			ctx := context.Background()
-			keyValue := name
-			r, err := c.SayHello(context.WithValue(ctx, kbalancer.DefaultKetamaKeyName, keyValue),
+			r, err := c.SayHello(
+				context.WithValue(ctx, "balancer.Key", key),
 				&pb.HelloRequest{Name: name},
 				grpc_retry.WithMax(3),
 				grpc_retry.WithPerRetryTimeout(time.Duration(300)*time.Millisecond),
@@ -84,9 +91,10 @@ func main() {
 				log.Printf("Greeting(%d): %s", i, r.Message)
 			}
 
-			log.Printf("Span(%d): %d ms", i, (time.Now().UnixNano()-ts)/int64(time.Millisecond))
+			//log.Printf("Span(%d): %d ms", i, (time.Now().UnixNano()-ts)/int64(time.Millisecond))
 		}(i)
 
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Second)
 	}
+	time.Sleep(time.Second * 100)
 }
